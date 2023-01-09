@@ -16,8 +16,8 @@ class Planet {
     static healRate = 4
     static radius = 50
 
-    static turretWidth = 5;
-    static turretHeight = 30;
+    static turretWidth = 30;
+    static turretHeight = 5;
 
     constructor() {
         this.health = 10
@@ -33,13 +33,8 @@ class Planet {
         }
     }
     rotateTurret() {
-        
-        var xdir = mouseX;//where x and y are the sword center
-        var ydir = mouseY;
-
-        var theta = Math.atan2(mouseX - Planet.x, -(mouseY - Planet.y) ) * (180 / Math.PI) - 90  
-
-        this.turretRotation = theta
+        let thetaPrime = Math.atan2(mouseY,mouseX)
+        this.turretRotation = thetaPrime
     }
     draw(){
         c.beginPath();
@@ -58,7 +53,7 @@ class Planet {
         // draw turret barrel
         c.fillStyle = "white"
         c.rotate(this.turretRotation)
-        c.fillRect(-Planet.turretWidth/2,-Planet.turretHeight,Planet.turretWidth,Planet.turretHeight)
+        c.fillRect(0,-Planet.turretHeight/2,Planet.turretWidth,Planet.turretHeight)
         c.resetTransform()
     }
 }
@@ -76,8 +71,8 @@ const planet = new Planet
 
 // get mouse position 
 canvas.addEventListener("mousemove", (e) => {
-    mouseX = Math.round(e.clientX - canvasPos.left)
-    mouseY = Math.round(e.clientY - canvasPos.top)
+    mouseX = Math.round(e.clientX - canvasPos.left - canvas.width/2)
+    mouseY = Math.round(e.clientY - canvasPos.top - canvas.height/2)
     console.log(mouseX,mouseY)
 })
 
