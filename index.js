@@ -206,6 +206,7 @@ function startGame() {
         alien2 : [],
         alien3 : []
     }
+    score = 0
     playing = true
 }
 
