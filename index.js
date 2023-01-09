@@ -18,10 +18,17 @@ class Planet {
 
     static turretWidth = 30;
     static turretHeight = 5;
+    static bulletSize = 5
+    static bulletSpeed = 4
 
+    
     constructor() {
         this.health = 10
         this.turretRotation = 0
+        this.bullets = []
+        
+        // powerups
+        this.automatic = true
     }
     heal(){
         this.health += Planet.healRate
@@ -55,6 +62,40 @@ class Planet {
         c.rotate(this.turretRotation)
         c.fillRect(0,-Planet.turretHeight/2,Planet.turretWidth,Planet.turretHeight)
         c.resetTransform()
+
+        // draw bullets
+        for (let i = 0; i < this.bullets.length;i++) 
+        {
+            let bullet = this.bullets[i]
+            c.translate(Planet.x,Planet.y)
+            c.translate(bullet.x,bullet.y)
+            c.fillRect(-Planet.bulletSize/2,-Planet.bulletSize/2,Planet.bulletSize,Planet.bulletSize)
+            c.resetTransform()
+        }
+    }
+    shootTurret(){
+        this.bullets.push({
+            x: Math.cos(this.turretRotation) * Planet.turretWidth,
+            y: Math.sin(this.turretRotation) * Planet.turretWidth,
+            xVel: Math.cos(this.turretRotation) * Planet.bulletSpeed,
+            yVel: Math.sin(this.turretRotation) * Planet.bulletSpeed,
+        })
+        // console.log(this.bullets)
+    }
+    update() {
+
+        this.rotateTurret()
+        
+        // move bullets
+        for (let i = 0; i < this.bullets.length;i++) 
+        {
+            let b = this.bullets[i]
+            b.x += b.xVel
+            b.y += b.yVel
+        }
+
+
+        this.draw()
     }
 }
 
@@ -73,23 +114,23 @@ const planet = new Planet
 canvas.addEventListener("mousemove", (e) => {
     mouseX = Math.round(e.clientX - canvasPos.left - canvas.width/2)
     mouseY = Math.round(e.clientY - canvasPos.top - canvas.height/2)
-    console.log(mouseX,mouseY)
+    // console.log(mouseX,mouseY)
+})
+
+canvas.addEventListener("click", (e) => {
+    planet.shootTurret()
 })
 
 // game loop
 function gameloop(){
     window.requestAnimationFrame(gameloop)
     if (playing) {
-        // update player
-        // update asteroids and aliens
-        // detect any collisions
-        // draw planet
-        c.clearRect(0,0,canvas.width,canvas.height)
-        planet.rotateTurret()
-        planet.draw()
 
-        // draw player
-        // draw aliens and asteroids
+        // clear canvas
+        c.clearRect(0,0,canvas.width,canvas.height)
+        // update planet
+        planet.update()
+        // update enemies
     } else {
         // make start screen
     }
