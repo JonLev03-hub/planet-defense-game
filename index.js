@@ -11,15 +11,14 @@ var score = 0;
 var day = 0;
 var enemyCap;
 var enemies;
+var powerup;
 
 const canvasPos = canvas.getBoundingClientRect()
 var mouseX;
 var mouseY;
 
 
-// cheats
-var fullAuto = false
-var god = false
+
 // load game files
 var laserSound = new Audio('laserSound.wav');
 laserSound.volume = .2
@@ -33,7 +32,6 @@ impactSound.volume = .2
 class Planet {
     static x = canvas.width/2
     static y = canvas.height/2
-    static healRate = 4
     static radius = 50
 
     static turretWidth = 30;
@@ -46,10 +44,8 @@ class Planet {
         this.health = 10
         this.turretRotation = 0
         this.bullets = []
+        this.fullauto = 0
         
-    }
-    heal(){
-        this.health += Planet.healRate
     }
     damage(damage = 1){
         this.health -= damage
@@ -183,18 +179,102 @@ class Asteroid {
         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
         }else {
-            enemyCap["asteroid"] += .1 
+            enemyCap["asteroid"] += .05
         }
         }
 }
+class Powerup {
+    static maxSpeed = 5
+    constructor(x,y){
+        this.radius = 15 // 7 is just the number of pixels to multiply the size by
+        this.type = this.powerupPicker()
+
+        // if x and y arent provided get random cordinate on outside of map
+        if (x) {this.x = x } else {
+            this.x = Math.random()*canvas.width + canvas.width
+        }
+       if (y){ this.y = y } else {
+        this.y = Math.random()*canvas.width + canvas.width
+       }
+        this.xVel = (.5 - Math.random())*Asteroid.maxSpeed + 2
+        this.yVel = (.5 - Math.random())*Asteroid.maxSpeed
+    }
+    powerupPicker(){
+        let min = 1
+        let max = 4
+        let p = Math.floor(Math.random() * (max - min + 1)) + min
+        switch (p) {
+            case 1:
+                return "fullauto"
+                break;
+            case 2:
+                return "heal"
+                break;
+            case 3:
+                // return "double shot"
+                console.log("double shot not made yet")
+                break;
+            case 4:
+                return "bonus"
+                break;
+            default:
+                break;
+        }
+
+    }
+    draw() {
+        c.beginPath();
+        c.strokeStyle = "yellow";
+        c.lineWidth = 2;
+        c.translate(this.x,this.y)
+        c.arc(0, 0, this.radius, 0, 2 * Math.PI);
+        c.stroke()
+        c.resetTransform()
+    }
+    update() {
+        this.x += this.xVel
+        this.y += this.yVel
+
+        // check if it passed the boundaries
+        if (this.y < -despawnRange) {
+            // console.log("out top")
+            this.y = canvas.height + despawnRange
+        } else if(this.y > canvas.height + despawnRange) {
+            this.y = -despawnRange
+        }else if (this.x < -despawnRange) {
+            // console.log("out top")
+            this.x = canvas.width + despawnRange
+        } else if(this.x > canvas.width + despawnRange) {
+            this.x = -despawnRange
+        }
+
+        this.draw()
+        console.log("exists")
+    }
+    break(){
+        switch (this.type) {
+            case "fullauto":
+                planet.fullauto = 150
+                console.log(planet.fullauto)
+                console.log("here")
+                break;
+            case "heal":
+                planet.health += 3
+                break
+            case "bonus":
+                score += 250
+                break;
+            default:
+                break;
+        }
+        powerup = new Powerup()
+}}
 class Alien1 {
-    static maxSpeed = 3
+    static maxSpeed = 2
     constructor(){
         this.type = 1
         this.findPos()
         this.findVel()
-        console.log(this.x,this.y)
-        console.log(this.yVel,this.xVel)
         this.radius = 25
         this.size = 2
     }
@@ -268,7 +348,7 @@ function startScreen() {
 
 function startGame() {
     enemyCap = {
-        asteroid: 2,
+        asteroid: 1,
         alien1 : 1,
         alien2 : 0,
         alien3 : 0
@@ -281,6 +361,7 @@ function startGame() {
     }
     score = 0
     playing = true
+    powerup = new Powerup()
 }
 
 function endGame(){
@@ -341,8 +422,6 @@ function gameloop(){
         // spawn enemy
         for (let k in enemies){
             // if there are less enemies than the max spawn more 
-            console.log(enemies)
-            console.log(enemyCap)
             if (enemies[k].length < Math.floor(enemyCap[k])){
                 switch (k) {
                     case "asteroid":
@@ -404,8 +483,24 @@ function gameloop(){
 
             }
         }
-        if (fullAuto) planet.shootTurret()
-        if (god) planet.health = 10
+        for (let i = 0; i < planet.bullets.length; i ++ ) {
+            let b = planet.bullets[i]
+            let x = b.x - powerup.x
+            let y = b.y - powerup.y
+            let distance = Math.sqrt(x*x+y*y)
+            if (distance <= powerup.radius) {
+                // console.log(i)
+                planet.bullets.splice(i,1)
+                powerup.break()
+                break
+                // e.hit()
+            }
+        }
+        powerup.update()
+        if (planet.fullauto) {
+            planet.shootTurret()
+            planet.fullauto -- 
+        }
         // console.log(score)
     } else {
         // make start screen
