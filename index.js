@@ -26,6 +26,19 @@ const canvasPos = canvas.getBoundingClientRect()
 var mouseX;
 var mouseY;
 
+
+// cheats
+var fullAuto = false
+var god = false
+// load game files
+var laserSound = new Audio('laserSound.wav');
+laserSound.volume = .2
+var explosionSound = new Audio('explosionSound.wav');
+explosionSound.volume = .2
+var impactSound = new Audio('impactSound.wav');
+impactSound.volume = .2
+
+
 // create classes
 class Planet {
     static x = canvas.width/2
@@ -94,6 +107,8 @@ class Planet {
             xVel: Math.cos(this.turretRotation) * Planet.bulletSpeed,
             yVel: Math.sin(this.turretRotation) * Planet.bulletSpeed,
         })
+        laserSound.currentTime = 0;
+        laserSound.play();
         // console.log(this.bullets)
     }
     update() {
@@ -172,6 +187,8 @@ class Asteroid {
     }
     break(){
         score += 10
+        explosionSound.currentTime = 0;
+        explosionSound.play();
         if (this.size > 1){
         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
@@ -252,7 +269,7 @@ canvas.addEventListener("click", (e) => {
 
 window.addEventListener("keydown",(e) => {
     let key = e.key;
-    console.log(key)
+    // console.log(key)
     if (key == "Enter" && playing == false) {
         startGame()
     }
@@ -302,7 +319,7 @@ function gameloop(){
                     let y = b.y - e.y
                     let distance = Math.sqrt(x*x+y*y)
                     if (distance <= e.radius) {
-                        console.log(i)
+                        // console.log(i)
                         planet.bullets.splice(i,1)
                         e.break()
                         enemies[k].splice(j,1)
@@ -321,13 +338,16 @@ function gameloop(){
                         endGame()
                     }
                     enemies[k].splice(j,1)
-                    console.log(planet.health)
+                    // console.log(planet.health)
+                    impactSound.currentTime = 0;
+                    impactSound.play();
                 }
 
             }
         }
-        // planet.shootTurret() // uncomment for full auto
-        console.log(score)
+        if (fullAuto) planet.shootTurret()
+        if (god) planet.health = 10
+        // console.log(score)
     } else {
         // make start screen
         startScreen()
