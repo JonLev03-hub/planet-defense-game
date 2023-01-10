@@ -9,18 +9,8 @@ var playing = false;
 var highscore = 0
 var score = 0;
 var day = 0;
-var enemyCap = {
-    asteroid: 2,
-    alien1 : 0,
-    alien2 : 0,
-    alien3 : 0
-}
-var enemies = {
-    asteroid: [],
-    alien1 : [],
-    alien2 : [],
-    alien3 : []
-}
+var enemyCap;
+var enemies;
 
 const canvasPos = canvas.getBoundingClientRect()
 var mouseX;
@@ -145,7 +135,7 @@ class Asteroid {
     static maxSpeed = 5
     constructor(size,x,y){
         this.size = size
-        this.radius = this.size * 12 // 7 is just the number of pixels to multiply the size by
+        this.radius = this.size * 15 // 7 is just the number of pixels to multiply the size by
 
         // if x and y arent provided get random cordinate on outside of map
         if (x) {this.x = x } else {
@@ -197,7 +187,73 @@ class Asteroid {
         }
         }
 }
+class Alien1 {
+    static maxSpeed = 3
+    constructor(){
+        this.type = 1
+        this.findPos()
+        this.findVel()
+        console.log(this.x,this.y)
+        console.log(this.yVel,this.xVel)
+        this.radius = 25
+        this.size = 2
+    }
 
+    draw(){
+        c.beginPath();
+        c.strokeStyle = "red";
+        c.lineWidth = 2;
+        c.translate(this.x,this.y)
+        c.arc(0, 0, this.radius, 0, 2 * Math.PI);
+        c.stroke()
+        c.resetTransform()
+    }
+    findPos(){
+        let min = 1
+        let max = 4
+        let q = Math.floor(Math.random() * (max - min + 1)) + min
+        let pos1 = Math.random()*canvas.width
+        console.log(q)
+        if (q == 1){
+
+            this.x = -despawnRange + 1
+            this.y = pos1
+        }else if(q==2){
+
+            this.x = canvas.width + despawnRange -1 
+            this.y = pos1
+        }else if(q==3){
+
+            this.y = -despawnRange + 1
+            this.x = pos1
+        }else if(q==4){
+
+            this.y = canvas.width + despawnRange -1
+            this.x = pos1
+        }
+    }
+    findVel(){
+        let thetaPrime = Math.atan2(Planet.y-this.y,Planet.x-this.x)
+        let yVel = Math.sin(thetaPrime)*Alien1.maxSpeed
+        let xVel = Math.cos(thetaPrime)*Alien1.maxSpeed
+        this.xVel = xVel
+        this.yVel = yVel
+        // return yVel,xVel
+    }
+    update() {
+        this.x += this.xVel
+        this.y += this.yVel
+        this.draw()
+        // console.log(this.x,this.y,this.xVel,this.yVel)
+    }
+    break(){
+        score += 20
+        explosionSound.currentTime = 0;
+        explosionSound.play();
+        enemyCap["alien1"] += .05
+    }
+    
+}
 
 // create functions
 function startScreen() {
@@ -213,7 +269,7 @@ function startScreen() {
 function startGame() {
     enemyCap = {
         asteroid: 2,
-        alien1 : 0,
+        alien1 : 1,
         alien2 : 0,
         alien3 : 0
     }
@@ -285,12 +341,15 @@ function gameloop(){
         // spawn enemy
         for (let k in enemies){
             // if there are less enemies than the max spawn more 
+            console.log(enemies)
+            console.log(enemyCap)
             if (enemies[k].length < Math.floor(enemyCap[k])){
                 switch (k) {
                     case "asteroid":
                         enemies.asteroid.push(new Asteroid(3))
                         break;
                     case "alien1":
+                        enemies.alien1.push(new Alien1())
                         
                         break;
                     case "alien2":
