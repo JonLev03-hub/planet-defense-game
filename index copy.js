@@ -12,11 +12,12 @@ var day = 0;
 var enemyCap;
 var enemies;
 var powerup;
-var difficulty = .04
 
 const canvasPos = canvas.getBoundingClientRect()
 var mouseX;
 var mouseY;
+
+
 
 // load game files
 var laserSound = new Audio('./assets/sounds/laserSound.wav');
@@ -27,91 +28,6 @@ var impactSound = new Audio('./assets/sounds/impactSound.wav');
 impactSound.volume = .1
 var powerupSound = new Audio('./assets/sounds/powerupSound.wav');
 impactSound.volume = .1
-
-// ----- new functions -----
-function randomNumber(max,neg = false){
-    let number = Math.floor(Math.random() * (max + 1))
-    if (neg && randomNumber(1)) {
-        number = number * -1
-    }
-    return number
-}
-
-// ----- new classes -----
-class entity {
-    constructor(x,y,health){
-        if (x && y){
-            this.x = x
-            this.y = y
-        }else {
-            this.generateLocation()
-        }
-    }
-    draw(){
-        c.beginPath();
-        c.strokeStyle = "white";
-        c.lineWidth = 2;
-        c.translate(this.x,this.y)
-        c.arc(0, 0, this.radius, 0, 2 * Math.PI);
-        c.stroke()
-        c.resetTransform()
-    }
-    update(){
-        this.x += this.xVel
-        this.y += this.yVel
-
-        // check if it passed the boundaries
-        if (this.y < -despawnRange) {
-            this.y = canvas.height + despawnRange
-        } else if(this.y > canvas.height + despawnRange) {
-            this.y = -despawnRange
-        }else if (this.x < -despawnRange) {
-
-            this.x = canvas.width + despawnRange
-        } else if(this.x > canvas.width + despawnRange) {
-            this.x = -despawnRange
-        }
-
-        this.draw()
-    }
-    generateLocation(){
-        this.x = 0
-        this.y = randomNumber(canvas.width,true)
-        if (randomNumber(1)) {
-            this.x,this.y = this.y,this.x
-        }
-
-    }
-}
-
-class Asteroid extends entity {
-    static maxSpeed = 3
-    static minSpeed = 1
-    static pixelMultiplier = 12
-    constructor(x,y,health = 3){
-        super(x,y)
-        this.pointValue = 10
-        this.health = health
-        this.radius = this.health * Asteroid.pixelMultiplier
-        this.xVel = randomNumber(Asteroid.maxSpeed-Asteroid.minSpeed,true)+Asteroid.minSpeed
-        this.yVel = randomNumber(Asteroid.maxSpeed-Asteroid.minSpeed,true)+Asteroid.minSpeed
-        this.damage = this.health
-    }
-    break(){
-        score += this.pointValue
-        explosionSound.currentTime = 0;
-        explosionSound.play();
-        if (this.health > 1){
-        enemies.asteroid.push(new Asteroid(this.x,this.y,this.health-1))
-        enemies.asteroid.push(new Asteroid(this.x,this.y,this.health-1))
-        }else {
-            enemyCap["asteroid"] += difficulty
-        }
-        }
-}
-
-
-
 
 // create classes
 class Planet {
@@ -180,6 +96,7 @@ class Planet {
         })
         laserSound.currentTime = 0;
         laserSound.play();
+        // console.log(this.bullets)
     }
     update() {
 
@@ -192,12 +109,14 @@ class Planet {
             b.y += b.yVel
 
             if (b.y < -despawnRange) {
+                // console.log("out top")
                 planet.bullets.splice(i,1)
 
             } else if(b.y > canvas.height + despawnRange) {
                 planet.bullets.splice(i,1)
 
             }else if (b.x < -despawnRange) {
+                // console.log("out top")
                 planet.bullets.splice(i,1)
 
             } else if(b.x > canvas.width + despawnRange) {
@@ -209,60 +128,62 @@ class Planet {
     }
 }
 
-// class Asteroid {
-//     static maxSpeed = 4
-//     constructor(size,x,y){
-//         this.size = size
-//         this.radius = this.size * 15 // 7 is just the number of pixels to multiply the size by
+class Asteroid {
+    static maxSpeed = 4
+    constructor(size,x,y){
+        this.size = size
+        this.radius = this.size * 15 // 7 is just the number of pixels to multiply the size by
 
-//         // if x and y arent provided get random cordinate on outside of map
-//         if (x) {this.x = x } else {
-//             this.x = Math.random()*canvas.width + canvas.width
-//         }
-//        if (y){ this.y = y } else {
-//         this.y = Math.random()*canvas.width + canvas.width
-//        }
-//         this.xVel = (.5 - Math.random())*Asteroid.maxSpeed
-//         this.yVel = (.5 - Math.random())*Asteroid.maxSpeed
-//     }
-//     draw() {
-//         c.beginPath();
-//         c.strokeStyle = "white";
-//         c.lineWidth = 2;
-//         c.translate(this.x,this.y)
-//         c.arc(0, 0, this.radius, 0, 2 * Math.PI);
-//         c.stroke()
-//         c.resetTransform()
-//     }
-//     update() {
-//         this.x += this.xVel
-//         this.y += this.yVel
+        // if x and y arent provided get random cordinate on outside of map
+        if (x) {this.x = x } else {
+            this.x = Math.random()*canvas.width + canvas.width
+        }
+       if (y){ this.y = y } else {
+        this.y = Math.random()*canvas.width + canvas.width
+       }
+        this.xVel = (.5 - Math.random())*Asteroid.maxSpeed
+        this.yVel = (.5 - Math.random())*Asteroid.maxSpeed
+    }
+    draw() {
+        c.beginPath();
+        c.strokeStyle = "white";
+        c.lineWidth = 2;
+        c.translate(this.x,this.y)
+        c.arc(0, 0, this.radius, 0, 2 * Math.PI);
+        c.stroke()
+        c.resetTransform()
+    }
+    update() {
+        this.x += this.xVel
+        this.y += this.yVel
 
-//         // check if it passed the boundaries
-//         if (this.y < -despawnRange) {
-//             this.y = canvas.height + despawnRange
-//         } else if(this.y > canvas.height + despawnRange) {
-//             this.y = -despawnRange
-//         }else if (this.x < -despawnRange) {
-//             this.x = canvas.width + despawnRange
-//         } else if(this.x > canvas.width + despawnRange) {
-//             this.x = -despawnRange
-//         }
+        // check if it passed the boundaries
+        if (this.y < -despawnRange) {
+            // console.log("out top")
+            this.y = canvas.height + despawnRange
+        } else if(this.y > canvas.height + despawnRange) {
+            this.y = -despawnRange
+        }else if (this.x < -despawnRange) {
+            // console.log("out top")
+            this.x = canvas.width + despawnRange
+        } else if(this.x > canvas.width + despawnRange) {
+            this.x = -despawnRange
+        }
 
-//         this.draw()
-//     }
-//     break(){
-//         score += 10
-//         explosionSound.currentTime = 0;
-//         explosionSound.play();
-//         if (this.size > 1){
-//         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
-//         enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
-//         }else {
-//             enemyCap["asteroid"] += .05
-//         }
-//         }
-// }
+        this.draw()
+    }
+    break(){
+        score += 10
+        explosionSound.currentTime = 0;
+        explosionSound.play();
+        if (this.size > 1){
+        enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
+        enemies.asteroid.push(new Asteroid(this.size-1,this.x-5,this.y-5))
+        }else {
+            enemyCap["asteroid"] += .05
+        }
+        }
+}
 class Powerup {
     static maxSpeed = 3
     constructor(x,y){
@@ -316,10 +237,12 @@ class Powerup {
 
         // check if it passed the boundaries
         if (this.y < -despawnRange) {
+            // console.log("out top")
             this.y = canvas.height + despawnRange
         } else if(this.y > canvas.height + despawnRange) {
             this.y = -despawnRange
         }else if (this.x < -despawnRange) {
+            // console.log("out top")
             this.x = canvas.width + despawnRange
         } else if(this.x > canvas.width + despawnRange) {
             this.x = -despawnRange
@@ -352,7 +275,7 @@ class Alien1 {
         this.findPos()
         this.findVel()
         this.radius = 25
-        this.damage = 2
+        this.size = 2
     }
 
     draw(){
@@ -399,12 +322,13 @@ class Alien1 {
         this.x += this.xVel
         this.y += this.yVel
         this.draw()
+        // console.log(this.x,this.y,this.xVel,this.yVel)
     }
     break(){
         score += 20
         explosionSound.currentTime = 0;
         explosionSound.play();
-        enemyCap["alien1"] += difficulty
+        enemyCap["alien1"] += .05
     }
     
 }
@@ -422,7 +346,7 @@ function startScreen() {
 
 function startGame() {
     enemyCap = {
-        asteroid: 2,
+        asteroid: 1,
         alien1 : 1,
         alien2 : 0,
         alien3 : 0
@@ -471,6 +395,7 @@ var planet = new Planet
 canvas.addEventListener("mousemove", (e) => {
     mouseX = Math.round(e.clientX - canvasPos.left - canvas.width/2)
     mouseY = Math.round(e.clientY - canvasPos.top - canvas.height/2)
+    // console.log(mouseX,mouseY)
 })
 
 canvas.addEventListener("click", (e) => {
@@ -479,6 +404,7 @@ canvas.addEventListener("click", (e) => {
 
 window.addEventListener("keydown",(e) => {
     let key = e.key;
+    // console.log(key)
     if (key == "Enter" && playing == false) {
         startGame()
     }
@@ -529,6 +455,7 @@ function gameloop(){
                     let y = b.y - e.y
                     let distance = Math.sqrt(x*x+y*y)
                     if (distance <= e.radius) {
+                        // console.log(i)
                         planet.bullets.splice(i,1)
                         e.break()
                         enemies[k].splice(j,1)
@@ -542,11 +469,12 @@ function gameloop(){
                 let y = Planet.y - e.y
                 let distance = Math.sqrt(x*x+y*y)
                 if (distance-e.radius < Planet.radius) {
-                    planet.health -= e.damage
+                    planet.health -= e.size
                     if (planet.health <= 0) {
                         endGame()
                     }
                     enemies[k].splice(j,1)
+                    // console.log(planet.health)
                     impactSound.currentTime = 0;
                     impactSound.play();
                 }
@@ -559,6 +487,7 @@ function gameloop(){
             let y = b.y - powerup.y
             let distance = Math.sqrt(x*x+y*y)
             if (distance <= powerup.radius) {
+                // console.log(i)
                 planet.bullets.splice(i,1)
                 powerup.break()
                 break
@@ -570,12 +499,13 @@ function gameloop(){
             planet.shootTurret()
             planet.fullauto -- 
         }
+        // console.log(score)
     } else {
         // make start screen
         startScreen()
     }
     // draw scoreboard
     drawScoreboard()
-
+    // console.log(mouseX,mouseY)
 }
 gameloop()
