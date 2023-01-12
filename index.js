@@ -6,6 +6,7 @@ const despawnRange = 30;
 
 // init game variables
 var playing = false;
+var paused = false
 var highscore = 0;
 var score = 0;
 var day = 0;
@@ -28,18 +29,23 @@ impactSound.volume = 0.1;
 var powerupSound = new Audio("./assets/sounds/powerupSound.wav");
 impactSound.volume = 0.1;
 
-// ----- new functions -----
-function randomNumber(max, neg = false) {
-  let number = Math.floor(Math.random() * (max + 1));
-  if (neg && randomNumber(1)) {
+// ----- functions -----
+function randomNumber(min,max, neg = false) {
+  let number = Math.floor(Math.random() * (max-min + 1)+min);
+  if (neg && randomNumber(0,1)) {
     number = number * -1;
   }
   return number;
 }
+function getDistance(x1,y1,x2,y2) {
+    let x = x1-x2;
+    let y = y1-y2
+    return Math.sqrt(x * x + y * y);
+}
 
-// ----- new classes -----
+// ----- classes -----
 class entity {
-  constructor(x, y, color = "white") {
+  constructor(x, y) {
     if (x && y) {
       this.x = x;
       this.y = y;
@@ -49,7 +55,7 @@ class entity {
   }
   draw() {
     c.beginPath();
-    c.strokeStyle = this.color;
+    c.strokeStyle = (this.color ? this.color : "white");
     c.lineWidth = 2;
     c.translate(this.x, this.y);
     c.arc(0, 0, this.radius, 0, 2 * Math.PI);
@@ -74,11 +80,9 @@ class entity {
     this.draw();
   }
   generateLocation() {
-    this.x = 0;
-    this.y = randomNumber(canvas.width, true);
-    if (randomNumber(1)) {
-      this.x, (this.y = this.y), this.x;
-    }
+      this.y = randomNumber(0,canvas.width+despawnRange/2, false);
+      this.x = randomNumber(0,1) ? -despawnRange/2 : canvas.width+despawnRange/2;
+      randomNumber(0,1) && ([this.x, this.y] = [this.y, this.x]);
   }
 }
 
@@ -92,30 +96,34 @@ class Asteroid extends entity {
     this.health = health;
     this.radius = this.health * Asteroid.pixelMultiplier;
     this.xVel =
-      randomNumber(Asteroid.maxSpeed - Asteroid.minSpeed, true) +
-      Asteroid.minSpeed;
+      randomNumber(Asteroid.minSpeed,Asteroid.maxSpeed, true)
     this.yVel =
-      randomNumber(Asteroid.maxSpeed - Asteroid.minSpeed, true) +
-      Asteroid.minSpeed;
+        randomNumber(Asteroid.minSpeed,Asteroid.maxSpeed, true)
     this.damage = this.health;
   }
+  spawn(){
+        if(enemies[this.constructor.name].length < Math.floor(enemyCap[this.constructor.name])){
+            enemies[this.constructor.name].push(new this.constructor);
+        }
+    }
   break() {
     score += this.pointValue;
     explosionSound.currentTime = 0;
     explosionSound.play();
     if (this.health > 1) {
-      enemies.asteroid.push(new Asteroid(this.x, this.y, this.health - 1));
-      enemies.asteroid.push(new Asteroid(this.x, this.y, this.health - 1));
+      enemies.Asteroid.push(new Asteroid(this.x+this.radius/3, this.y, this.health - 1));
+      enemies.Asteroid.push(new Asteroid(this.x, this.y-this.radius/3, this.health - 1));
     } else {
       enemyCap["asteroid"] += difficulty;
+      this.spawn()
     }
   }
 }
 
 class Powerup extends entity {
   static powerups = ["fullAuto", "heal", "bonusPoints"];
-  static respawnTime = 2000; // in ms
-  static maxSpeed = 5;
+  static respawnTime = 8000; // in ms
+  static maxSpeed = 2;
   static minSpeed = 1;
   constructor() {
     super(false, false, "red");
@@ -123,14 +131,12 @@ class Powerup extends entity {
     this.color = "yellow";
     this.power = this.GeneratePowerup();
     this.xVel =
-      randomNumber(Powerup.maxSpeed - Powerup.minSpeed, true) +
-      Powerup.minSpeed;
+      randomNumber(Powerup.minSpeed,Powerup.maxSpeed, true);
     this.yVel =
-      randomNumber(Powerup.maxSpeed - Powerup.minSpeed, true) +
-      Powerup.minSpeed;
+    randomNumber(Powerup.minSpeed,Powerup.maxSpeed, true);
   }
   GeneratePowerup() {
-    let index = randomNumber(Powerup.powerups.length);
+    let index = randomNumber(0,Powerup.powerups.length);
     return Powerup.powerups[index];
   }
   break() {
@@ -138,7 +144,7 @@ class Powerup extends entity {
     powerupSound.play();
     switch (this.power) {
       case "fullAuto":
-        planet.fullAuto += 150;
+        planet.fullAuto = 150;
         break;
       case "heal":
         planet.health += 4;
@@ -149,15 +155,52 @@ class Powerup extends entity {
       default:
         break;
     }
+
+    // spawn the new powerup
     powerup = undefined;
     setTimeout(() => {
       powerup = new Powerup();
-      console.log(powerup);
     }, Powerup.respawnTime);
   }
 }
 
-// create classes
+class Alien1 extends entity{
+    static maxSpeed = 2;
+    constructor() {
+        super()
+      this.findVel();
+      this.radius = 25;
+      this.damage = 2;
+      this.color = "red"
+      this.pointValue = 20
+    }
+    findVel() {
+      let thetaPrime = Math.atan2(Planet.y - this.y, Planet.x - this.x);
+      let yVel = Math.sin(thetaPrime) * Alien1.maxSpeed;
+      let xVel = Math.cos(thetaPrime) * Alien1.maxSpeed;
+      this.xVel = xVel;
+      this.yVel = yVel;
+      // return yVel,xVel
+    }
+    update() {
+      this.x += this.xVel;
+      this.y += this.yVel;
+      this.draw();
+    }
+    spawn(){
+        while(enemies[this.constructor.name].length < Math.floor(enemyCap[this.constructor.name])){
+            enemies[this.constructor.name].push(new this.constructor);
+        }
+    }
+    break() {
+      score += this.pointValue;
+      explosionSound.currentTime = 0;
+      explosionSound.play();
+      enemyCap[this.constructor.name] += difficulty;
+      this.spawn()
+    }
+  }
+
 class Planet {
   static x = canvas.width / 2;
   static y = canvas.height / 2;
@@ -176,8 +219,10 @@ class Planet {
   }
   damage(damage = 1) {
     this.health -= damage;
+    impactSound.currentTime = 0;
+    impactSound.play();
     if (this.health <= 0) {
-      // end game
+      endGame()
     }
   }
   rotateTurret() {
@@ -223,6 +268,7 @@ class Planet {
     }
   }
   shootTurret() {
+    if (paused) return;
     this.bullets.push({
       x: Math.cos(this.turretRotation) * Planet.turretWidth + Planet.x,
       y: Math.sin(this.turretRotation) * Planet.turretWidth + Planet.y,
@@ -234,6 +280,12 @@ class Planet {
   }
   update() {
     this.rotateTurret();
+
+    if (planet.fullAuto) {
+        planet.shootTurret();
+        planet.fullAuto--;
+    }
+
     // move bullets
     for (let i = 0; i < this.bullets.length; i++) {
       let b = this.bullets[i];
@@ -254,64 +306,6 @@ class Planet {
   }
 }
 
-class Alien1 {
-  static maxSpeed = 2;
-  constructor() {
-    this.type = 1;
-    this.findPos();
-    this.findVel();
-    this.radius = 25;
-    this.damage = 2;
-  }
-
-  draw() {
-    c.beginPath();
-    c.strokeStyle = "red";
-    c.lineWidth = 2;
-    c.translate(this.x, this.y);
-    c.arc(0, 0, this.radius, 0, 2 * Math.PI);
-    c.stroke();
-    c.resetTransform();
-  }
-  findPos() {
-    let min = 1;
-    let max = 4;
-    let q = Math.floor(Math.random() * (max - min + 1)) + min;
-    let pos1 = Math.random() * canvas.width;
-    if (q == 1) {
-      this.x = -despawnRange + 1;
-      this.y = pos1;
-    } else if (q == 2) {
-      this.x = canvas.width + despawnRange - 1;
-      this.y = pos1;
-    } else if (q == 3) {
-      this.y = -despawnRange + 1;
-      this.x = pos1;
-    } else if (q == 4) {
-      this.y = canvas.width + despawnRange - 1;
-      this.x = pos1;
-    }
-  }
-  findVel() {
-    let thetaPrime = Math.atan2(Planet.y - this.y, Planet.x - this.x);
-    let yVel = Math.sin(thetaPrime) * Alien1.maxSpeed;
-    let xVel = Math.cos(thetaPrime) * Alien1.maxSpeed;
-    this.xVel = xVel;
-    this.yVel = yVel;
-    // return yVel,xVel
-  }
-  update() {
-    this.x += this.xVel;
-    this.y += this.yVel;
-    this.draw();
-  }
-  break() {
-    score += 20;
-    explosionSound.currentTime = 0;
-    explosionSound.play();
-    enemyCap["alien1"] += difficulty;
-  }
-}
 
 // create functions
 function startScreen() {
@@ -321,26 +315,30 @@ function startScreen() {
   c.fillStyle = "white";
   c.textAlign = "center";
   c.font = "bold 20px 'Press Start 2P'";
-  c.fillText("Press Enter To Start", canvas.width / 2, canvas.height / 2);
+  c.fillText("Press Spacebar To Start", canvas.width / 2, canvas.height / 2);
 }
+function pauseScreen() {
+    // draw play button
+    c.fillStyle = "rgba(0,0,0,.5)";
+    c.fillRect(0, 0, canvas.width, canvas.height);
+    c.fillStyle = "white";
+    c.textAlign = "center";
+    c.font = "bold 20px 'Press Start 2P'";
+    c.fillText("Press Spacebar to continue", canvas.width / 2, canvas.height / 2);
+  }
 
 function startGame() {
   enemyCap = {
-    asteroid: 2,
-    alien1: 1,
-    alien2: 0,
-    alien3: 0,
+    Asteroid: 2,
+    Alien1: 1,
   };
   enemies = {
-    asteroid: [],
-    alien1: [],
-    alien2: [],
-    alien3: [],
+    Asteroid: [new Asteroid],
+    Alien1: [new Alien1],
   };
   score = 0;
   playing = true;
   powerup = new Powerup();
-  console.log(powerup);
 }
 
 function endGame() {
@@ -366,9 +364,6 @@ function drawScoreboard() {
 
 // Init classes
 var planet = new Planet();
-// Init functions
-
-// other stuff
 
 // get mouse position
 canvas.addEventListener("mousemove", (e) => {
@@ -382,8 +377,13 @@ canvas.addEventListener("click", (e) => {
 
 window.addEventListener("keydown", (e) => {
   let key = e.key;
-  if (key == "Enter" && playing == false) {
-    startGame();
+  console.log(key)
+  if (key == " ") {
+    if (playing == false ){
+        startGame()
+    }else {
+        paused  = !paused
+    }
   }
 });
 
@@ -392,66 +392,36 @@ function gameloop() {
   window.requestAnimationFrame(gameloop);
   c.clearRect(0, 0, canvas.width, canvas.height);
   planet.update();
-  if (playing) {
-    // spawn enemy
-    for (let k in enemies) {
-      // if there are less enemies than the max spawn more
-      if (enemies[k].length < Math.floor(enemyCap[k])) {
-        switch (k) {
-          case "asteroid":
-            enemies.asteroid.push(new Asteroid(3));
-            break;
-          case "alien1":
-            enemies.alien1.push(new Alien1());
-
-            break;
-          case "alien2":
-            break;
-          case "alien3":
-            break;
-          default:
-            break;
-        }
-      }
-    }
-    // update planet
+  if (playing && !paused) {
     // update enemies
     for (let k in enemies) {
       for (let j = 0; j < enemies[k].length; j++) {
-        let e = enemies[k][j];
 
+        let e = enemies[k][j];
         e.update();
 
         // check for bullet collision
         for (let i = 0; i < planet.bullets.length; i++) {
           let b = planet.bullets[i];
-          let x = b.x - e.x;
-          let y = b.y - e.y;
-          let distance = Math.sqrt(x * x + y * y);
+          let distance = getDistance(e.x,e.y,b.x,b.y)
           if (distance <= e.radius) {
-            planet.bullets.splice(i, 1);
-            e.break();
-            enemies[k].splice(j, 1);
+              planet.bullets.splice(i, 1);
+              enemies[k].splice(j, 1);
+              e.break();
             break;
-            // e.hit()
           }
         }
 
         // check for planet collision
-        let x = Planet.x - e.x;
-        let y = Planet.y - e.y;
-        let distance = Math.sqrt(x * x + y * y);
+        let distance = getDistance(e.x,e.y,Planet.x,Planet.y)
         if (distance - e.radius < Planet.radius) {
-          planet.health -= e.damage;
-          if (planet.health <= 0) {
-            endGame();
-          }
+          planet.damage(e.damage)
           enemies[k].splice(j, 1);
-          impactSound.currentTime = 0;
-          impactSound.play();
+          e.spawn()
         }
       }
     }
+    // update powerup and check for collsion
     if (powerup) {
       powerup.update();
       for (let i = 0; i < planet.bullets.length; i++) {
@@ -463,19 +433,14 @@ function gameloop() {
           planet.bullets.splice(i, 1);
           powerup.break();
           break;
-          // e.hit()
         }
       }
     }
-    if (planet.fullAuto) {
-      planet.shootTurret();
-      planet.fullAuto--;
-    }
-  } else {
-    // make start screen
-    startScreen();
+  } else if (playing){
+    pauseScreen()
+  }else {
+    startScreen()
   }
-  // draw scoreboard
   drawScoreboard();
 }
 gameloop();
