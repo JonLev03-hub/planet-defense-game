@@ -10,8 +10,8 @@ var paused = false
 var highscore = 0;
 var score = 0;
 var day = 0;
-var enemyCap;
-var enemies;
+var entityCap;
+var entities;
 var powerup;
 var difficulty = 0.04;
 
@@ -84,6 +84,14 @@ class entity {
       this.x = randomNumber(0,1) ? -despawnRange/2 : canvas.width+despawnRange/2;
       randomNumber(0,1) && ([this.x, this.y] = [this.y, this.x]);
   }
+  spawn(){
+    setTimeout(()=>{
+      while(entities[this.constructor.name].length < Math.floor(entityCap[this.constructor.name])){
+        entities[this.constructor.name].push(new this.constructor);
+      }
+    },this.spawnTime
+    )
+  }
 }
 
 class Asteroid extends entity {
@@ -101,20 +109,15 @@ class Asteroid extends entity {
         randomNumber(Asteroid.minSpeed,Asteroid.maxSpeed, true)
     this.damage = this.health;
   }
-  spawn(){
-        if(enemies[this.constructor.name].length < Math.floor(enemyCap[this.constructor.name])){
-            enemies[this.constructor.name].push(new this.constructor);
-        }
-    }
   break() {
     score += this.pointValue;
     explosionSound.currentTime = 0;
     explosionSound.play();
     if (this.health > 1) {
-      enemies.Asteroid.push(new Asteroid(this.x+this.radius/3, this.y, this.health - 1));
-      enemies.Asteroid.push(new Asteroid(this.x, this.y-this.radius/3, this.health - 1));
+      entities.Asteroid.push(new Asteroid(this.x+this.radius/3, this.y, this.health - 1));
+      entities.Asteroid.push(new Asteroid(this.x, this.y-this.radius/3, this.health - 1));
     } else {
-      enemyCap["asteroid"] += difficulty;
+      entityCap["asteroid"] += difficulty;
       this.spawn()
     }
   }
@@ -122,7 +125,6 @@ class Asteroid extends entity {
 
 class Powerup extends entity {
   static powerups = ["fullAuto", "heal", "bonusPoints"];
-  static respawnTime = 0000; // in ms
   static maxSpeed = 2;
   static minSpeed = 1;
   constructor() {
@@ -134,6 +136,7 @@ class Powerup extends entity {
       randomNumber(Powerup.minSpeed,Powerup.maxSpeed, true);
     this.yVel =
     randomNumber(Powerup.minSpeed,Powerup.maxSpeed, true);
+    this.spawnTime = 8000
   }
   GeneratePowerup() {
     let index = randomNumber(0,Powerup.powerups.length-1);
@@ -159,12 +162,7 @@ class Powerup extends entity {
         console.log(this.power)
         break;
     }
-
-    // spawn the new powerup
-    powerup = undefined;
-    setTimeout(() => {
-      powerup = new Powerup();
-    }, Powerup.respawnTime);
+    this.spawn()
   }
 }
 
@@ -177,6 +175,7 @@ class Alien1 extends entity{
       this.damage = 2;
       this.color = "red"
       this.pointValue = 20
+      this.spawnTime = 1000
     }
     findVel() {
       let thetaPrime = Math.atan2(Planet.y - this.y, Planet.x - this.x);
@@ -184,23 +183,12 @@ class Alien1 extends entity{
       let xVel = Math.cos(thetaPrime) * Alien1.maxSpeed;
       this.xVel = xVel;
       this.yVel = yVel;
-      // return yVel,xVel
-    }
-    update() {
-      this.x += this.xVel;
-      this.y += this.yVel;
-      this.draw();
-    }
-    spawn(){
-        while(enemies[this.constructor.name].length < Math.floor(enemyCap[this.constructor.name])){
-            enemies[this.constructor.name].push(new this.constructor);
-        }
     }
     break() {
       score += this.pointValue;
       explosionSound.currentTime = 0;
       explosionSound.play();
-      enemyCap[this.constructor.name] += difficulty;
+      entityCap[this.constructor.name] += difficulty;
       this.spawn()
     }
   }
@@ -332,13 +320,15 @@ function pauseScreen() {
   }
 
 function startGame() {
-  enemyCap = {
+  entityCap = {
     Asteroid: 2,
     Alien1: 1,
+    Powerup: 1,
   };
-  enemies = {
+  entities = {
     Asteroid: [new Asteroid],
     Alien1: [new Alien1],
+    Powerup:[new Powerup]
   };
   score = 0;
   playing = true;
@@ -397,11 +387,11 @@ function gameloop() {
   c.clearRect(0, 0, canvas.width, canvas.height);
   planet.update();
   if (playing && !paused) {
-    // update enemies
-    for (let k in enemies) {
-      for (let j = 0; j < enemies[k].length; j++) {
+    // update entities
+    for (let k in entities) {
+      for (let j = 0; j < entities[k].length; j++) {
 
-        let e = enemies[k][j];
+        let e = entities[k][j];
         e.update();
 
         // check for bullet collision
@@ -410,7 +400,7 @@ function gameloop() {
           let distance = getDistance(e.x,e.y,b.x,b.y)
           if (distance <= e.radius) {
               planet.bullets.splice(i, 1);
-              enemies[k].splice(j, 1);
+              entities[k].splice(j, 1);
               e.break();
             break;
           }
@@ -420,26 +410,13 @@ function gameloop() {
         let distance = getDistance(e.x,e.y,Planet.x,Planet.y)
         if (distance - e.radius < Planet.radius) {
           planet.damage(e.damage)
-          enemies[k].splice(j, 1);
+          entities[k].splice(j, 1);
           e.spawn()
         }
       }
     }
-    // update powerup and check for collsion
-    if (powerup) {
-      powerup.update();
-      for (let i = 0; i < planet.bullets.length; i++) {
-        let b = planet.bullets[i];
-        let x = b.x - powerup.x;
-        let y = b.y - powerup.y;
-        let distance = Math.sqrt(x * x + y * y);
-        if (distance <= powerup.radius) {
-          planet.bullets.splice(i, 1);
-          powerup.break();
-          break;
-        }
-      }
-    }
+    
+    
   } else if (playing){
     pauseScreen()
   }else {
