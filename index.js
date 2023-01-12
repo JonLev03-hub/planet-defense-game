@@ -13,7 +13,7 @@ var day = 0;
 var entityCap;
 var entities;
 var powerup;
-var difficulty = 0.04;
+var difficulty = 0.02;
 
 const canvasPos = canvas.getBoundingClientRect();
 var mouseX;
@@ -92,6 +92,13 @@ class entity {
     },this.spawnTime
     )
   }
+  break() {
+    score += this.pointValue;
+    explosionSound.currentTime = 0;
+    explosionSound.play();
+    entityCap[this.constructor.name] += difficulty;
+    this.spawn()
+  }
 }
 
 class Asteroid extends entity {
@@ -117,7 +124,7 @@ class Asteroid extends entity {
       entities.Asteroid.push(new Asteroid(this.x+this.radius/3, this.y, this.health - 1));
       entities.Asteroid.push(new Asteroid(this.x, this.y-this.radius/3, this.health - 1));
     } else {
-      entityCap["asteroid"] += difficulty;
+      entityCap[this.constructor.name] += difficulty;
       this.spawn()
     }
   }
@@ -184,12 +191,63 @@ class Alien1 extends entity{
       this.xVel = xVel;
       this.yVel = yVel;
     }
-    break() {
-      score += this.pointValue;
-      explosionSound.currentTime = 0;
-      explosionSound.play();
-      entityCap[this.constructor.name] += difficulty;
-      this.spawn()
+  }
+  class Alien2 extends entity{
+    static maxSpeed = 4;
+    static targetRange = 100
+    constructor() {
+        super()
+        this.radius = 20;
+        this.damage = 2;
+        this.color = "lightgreen"
+        this.pointValue = 40
+        this.spawnTime = 1000
+        this.targetX = (this.x + Planet.x)/2
+        this.targetY = (this.y + Planet.y)/2
+        this.findVel();
+    }
+    findVel() {
+      let thetaPrime = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+      let yVel = Math.sin(thetaPrime) * Alien2.maxSpeed;
+      let xVel = Math.cos(thetaPrime) * Alien2.maxSpeed;
+      this.xVel = xVel;
+      this.yVel = yVel;
+    }
+    newTarget(){
+      if (randomNumber(0,7)){
+        // random movement
+        this.targetX = this.x + randomNumber(0,Alien2.targetRange,true)
+        this.targetY = this.y + randomNumber(0,Alien2.targetRange,true)
+
+        // make sure that the target is within the screen
+        if (this.targetX < 0 | this.targetY < 0 | this.targetX > canvas.width | this.targetY > canvas.width) {
+          this.newTarget()
+          return
+        }
+        // make sure that target wont be on planet
+        let distance = getDistance(Planet.x,Planet.y,this.targetX,this.targetY)
+        if (distance < 100) {
+          this.newTarget()
+          return
+
+        }
+      }else {
+        // target player
+        this.targetX = Planet.x
+        this.targetY = Planet.y
+      }
+
+
+      this.findVel()
+    }
+    update(){
+      this.y += this.yVel;
+      this.x += this.xVel; 
+      let distance = getDistance(this.x,this.y,this.targetX,this.targetY)
+      if (distance <= Alien2.maxSpeed*2) {
+        this.newTarget()
+      }
+      this.draw()
     }
   }
 
@@ -321,13 +379,15 @@ function pauseScreen() {
 
 function startGame() {
   entityCap = {
-    Asteroid: 2,
+    Asteroid: 1,
     Alien1: 1,
+    Alien2: 1,
     Powerup: 1,
   };
   entities = {
     Asteroid: [new Asteroid],
     Alien1: [new Alien1],
+    Alien2: [new Alien2],
     Powerup:[new Powerup]
   };
   score = 0;
