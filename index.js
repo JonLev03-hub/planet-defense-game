@@ -122,7 +122,7 @@ class Asteroid extends entity {
 
 class Powerup extends entity {
   static powerups = ["fullAuto", "heal", "bonusPoints"];
-  static respawnTime = 8000; // in ms
+  static respawnTime = 0000; // in ms
   static maxSpeed = 2;
   static minSpeed = 1;
   constructor() {
@@ -136,7 +136,7 @@ class Powerup extends entity {
     randomNumber(Powerup.minSpeed,Powerup.maxSpeed, true);
   }
   GeneratePowerup() {
-    let index = randomNumber(0,Powerup.powerups.length);
+    let index = randomNumber(0,Powerup.powerups.length-1);
     return Powerup.powerups[index];
   }
   break() {
@@ -144,15 +144,19 @@ class Powerup extends entity {
     powerupSound.play();
     switch (this.power) {
       case "fullAuto":
+        console.log("auto")
         planet.fullAuto = 150;
         break;
       case "heal":
+        console.log("heal")
         planet.health += 4;
         break;
       case "bonusPoints":
+        console.log("points")
         score += 250;
         break;
       default:
+        console.log(this.power)
         break;
     }
 
