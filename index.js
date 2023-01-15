@@ -264,7 +264,8 @@ class Alien2 extends entity {
 }
 class Alien3 extends entity {
   static maxSpeed = 2;
-  static patrolRange = 100;
+  static patrolRange = Math.PI / 2; //in radians
+  static patrolRadius = 300;
   constructor() {
     super();
     this.radius = 20;
@@ -275,6 +276,11 @@ class Alien3 extends entity {
     this.targetX = (this.x + Planet.x) / 2;
     this.targetY = (this.y + Planet.y) / 2;
     this.findVel();
+
+    this.bulletTime = 1; // in ms
+    this.bulletSpeed = 5;
+    this.bulletSize = 10;
+    this.bullets = [];
   }
   findVel() {
     let thetaPrime = Math.atan2(this.targetY - this.y, this.targetX - this.x);
@@ -284,18 +290,26 @@ class Alien3 extends entity {
     this.yVel = yVel;
   }
   newTarget() {
-    var angle = Math.random() * Math.PI * 2;
-    this.targetX = Math.cos(angle) * 300 + Planet.x;
-    this.targetY = Math.sin(angle) * 300 + Planet.y;
-    if (
-      getDistance(this.x, this.y, this.targetX, this.targetY) >
-      Alien3.patrolRange
-    ) {
-      console.log("too far");
-      this.newTarget();
-      return;
-    }
+    let planetAngle = Math.atan2(this.y - Planet.y, this.x - Planet.x);
+    let angle = Math.random() * Alien3.patrolRange;
+    if (randomNumber(0, 1)) angle *= -1;
+    this.targetX =
+      Math.cos(angle + planetAngle) * Alien3.patrolRadius + Planet.x;
+    this.targetY =
+      Math.sin(angle + planetAngle) * Alien3.patrolRadius + Planet.y;
     this.findVel();
+    if (!randomNumber(0, 1)) this.shoot();
+  }
+  shoot() {
+    if (paused) return;
+    let angle = Math.atan2(this.y - Planet.y, this.x - Planet.x);
+    this.bullets.push({
+      x: this.x,
+      y: this.y,
+      xVel: Math.cos(angle) * this.bulletSpeed,
+      yVel: Math.sin(angle) * this.bulletSpeed,
+    });
+    console.log(this.bullets);
   }
   update() {
     this.y += this.yVel;
@@ -306,21 +320,21 @@ class Alien3 extends entity {
     }
     this.draw();
 
-    c.beginPath();
-    c.strokeStyle = "white";
-    c.lineWidth = 2;
-    c.translate(this.targetX, this.targetY);
-    c.arc(0, 0, 5, 0, 2 * Math.PI);
-    c.stroke();
-    c.resetTransform();
-
-    c.beginPath();
-    c.strokeStyle = "red";
-    c.lineWidth = 2;
-    c.translate(this.x, this.y);
-    c.arc(0, 0, Alien3.patrolRange, 0, 2 * Math.PI);
-    c.stroke();
-    c.resetTransform();
+    // update bullets
+    for (let i = 0; i < this.bullets.length; i++) {
+      let bullet = this.bullets[i];
+      bullet.x -= bullet.xVel;
+      bullet.y -= bullet.yVel;
+      c.translate(bullet.x, bullet.y);
+      c.fillStyle = "lightblue";
+      c.fillRect(
+        -this.bulletSize / 2,
+        -this.bulletSize / 2,
+        this.bulletSize,
+        this.bulletSize
+      );
+      c.resetTransform();
+    }
   }
 }
 
