@@ -262,6 +262,67 @@ class Alien2 extends entity {
     this.draw();
   }
 }
+class Alien3 extends entity {
+  static maxSpeed = 2;
+  static patrolRange = 100;
+  constructor() {
+    super();
+    this.radius = 20;
+    this.damage = 2;
+    this.color = "purple";
+    this.pointValue = 40;
+    this.spawnTime = 1000;
+    this.targetX = (this.x + Planet.x) / 2;
+    this.targetY = (this.y + Planet.y) / 2;
+    this.findVel();
+  }
+  findVel() {
+    let thetaPrime = Math.atan2(this.targetY - this.y, this.targetX - this.x);
+    let yVel = Math.sin(thetaPrime) * Alien3.maxSpeed;
+    let xVel = Math.cos(thetaPrime) * Alien3.maxSpeed;
+    this.xVel = xVel;
+    this.yVel = yVel;
+  }
+  newTarget() {
+    var angle = Math.random() * Math.PI * 2;
+    this.targetX = Math.cos(angle) * 300 + Planet.x;
+    this.targetY = Math.sin(angle) * 300 + Planet.y;
+    if (
+      getDistance(this.x, this.y, this.targetX, this.targetY) >
+      Alien3.patrolRange
+    ) {
+      console.log("too far");
+      this.newTarget();
+      return;
+    }
+    this.findVel();
+  }
+  update() {
+    this.y += this.yVel;
+    this.x += this.xVel;
+    let distance = getDistance(this.x, this.y, this.targetX, this.targetY);
+    if (distance <= Alien3.maxSpeed * 2) {
+      this.newTarget();
+    }
+    this.draw();
+
+    c.beginPath();
+    c.strokeStyle = "white";
+    c.lineWidth = 2;
+    c.translate(this.targetX, this.targetY);
+    c.arc(0, 0, 5, 0, 2 * Math.PI);
+    c.stroke();
+    c.resetTransform();
+
+    c.beginPath();
+    c.strokeStyle = "red";
+    c.lineWidth = 2;
+    c.translate(this.x, this.y);
+    c.arc(0, 0, Alien3.patrolRange, 0, 2 * Math.PI);
+    c.stroke();
+    c.resetTransform();
+  }
+}
 
 class Planet {
   static x = canvas.width / 2;
@@ -389,15 +450,17 @@ function pauseScreen() {
 
 function startGame() {
   entityCap = {
-    Asteroid: 1,
-    Alien1: 1,
-    Alien2: 1,
-    Powerup: 1,
+    Asteroid: 0,
+    Alien1: 0,
+    Alien2: 0,
+    Alien3: 1,
+    Powerup: 0,
   };
   entities = {
-    Asteroid: [new Asteroid()],
-    Alien1: [new Alien1()],
-    Alien2: [new Alien2()],
+    Asteroid: [],
+    Alien1: [],
+    Alien2: [],
+    Alien3: [new Alien3()],
     Powerup: [new Powerup()],
   };
   score = 0;
