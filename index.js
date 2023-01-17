@@ -278,7 +278,7 @@ class Alien3 extends entity {
     this.findVel();
 
     this.bulletTime = 1; // in ms
-    this.bulletSpeed = 5;
+    this.bulletSpeed = 2;
     this.bulletSize = 10;
     this.bullets = [];
   }
@@ -298,7 +298,8 @@ class Alien3 extends entity {
     this.targetY =
       Math.sin(angle + planetAngle) * Alien3.patrolRadius + Planet.y;
     this.findVel();
-    if (!randomNumber(0, 1)) this.shoot();
+    // if (!randomNumber(0, 1)) this.shoot();
+    this.shoot();
   }
   shoot() {
     if (paused) return;
@@ -325,6 +326,24 @@ class Alien3 extends entity {
       let bullet = this.bullets[i];
       bullet.x -= bullet.xVel;
       bullet.y -= bullet.yVel;
+
+      // check for planet collision
+      let distance = getDistance(bullet.x, bullet.y, Planet.x, Planet.y);
+      if (distance - this.bulletSize < Planet.radius) {
+        planet.stun();
+        this.bullets.splice(i, 1);
+      }
+
+      // check for bullet collision
+      for (let j = 0; j < planet.bullets.length; j++) {
+        let b = planet.bullets[j];
+        let distance = getDistance(bullet.x, bullet.y, b.x, b.y);
+        if (distance <= this.bulletSize) {
+          planet.bullets.splice(j, 1);
+          this.bullets.splice(i, 1);
+        }
+      }
+
       c.translate(bullet.x, bullet.y);
       c.fillStyle = "lightblue";
       c.fillRect(
@@ -353,6 +372,7 @@ class Planet {
     this.turretRotation = 0;
     this.bullets = [];
     this.fullAuto = 0;
+    this.stuned = false;
   }
   damage(damage = 1) {
     this.health -= damage;
@@ -406,6 +426,7 @@ class Planet {
   }
   shootTurret() {
     if (paused) return;
+    if (this.stuned) return;
     this.bullets.push({
       x: Math.cos(this.turretRotation) * Planet.turretWidth + Planet.x,
       y: Math.sin(this.turretRotation) * Planet.turretWidth + Planet.y,
@@ -414,6 +435,16 @@ class Planet {
     });
     laserSound.currentTime = 0;
     laserSound.play();
+  }
+  stun() {
+    if (this.stuned) {
+      clearInterval(this.stunFunction);
+    }
+    this.stuned = true;
+    console.log("stun");
+    this.stunFunction = setTimeout(() => {
+      this.stuned = false;
+    }, 1000);
   }
   update() {
     this.rotateTurret();
@@ -464,16 +495,16 @@ function pauseScreen() {
 
 function startGame() {
   entityCap = {
-    Asteroid: 0,
-    Alien1: 0,
-    Alien2: 0,
+    Asteroid: 1,
+    Alien1: 1,
+    Alien2: 1,
     Alien3: 1,
-    Powerup: 0,
+    Powerup: 1,
   };
   entities = {
-    Asteroid: [],
-    Alien1: [],
-    Alien2: [],
+    Asteroid: [new Asteroid()],
+    Alien1: [new Alien1()],
+    Alien2: [new Alien2()],
     Alien3: [new Alien3()],
     Powerup: [new Powerup()],
   };
