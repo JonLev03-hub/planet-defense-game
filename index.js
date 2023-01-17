@@ -15,7 +15,6 @@ var entities;
 var powerup;
 var difficulty = 0.02;
 
-const canvasPos = canvas.getBoundingClientRect();
 var mouseX;
 var mouseY;
 
@@ -158,19 +157,15 @@ class Powerup extends entity {
     powerupSound.play();
     switch (this.power) {
       case "fullAuto":
-        console.log("auto");
         planet.fullAuto = 150;
         break;
       case "heal":
-        console.log("heal");
         planet.health += 4;
         break;
       case "bonusPoints":
-        console.log("points");
         score += 250;
         break;
       default:
-        console.log(this.power);
         break;
     }
     this.spawn();
@@ -272,7 +267,7 @@ class Alien3 extends entity {
     this.damage = 2;
     this.color = "purple";
     this.pointValue = 40;
-    this.spawnTime = 1000;
+    this.spawnTime = 15000;
     this.targetX = (this.x + Planet.x) / 2;
     this.targetY = (this.y + Planet.y) / 2;
     this.findVel();
@@ -310,7 +305,6 @@ class Alien3 extends entity {
       xVel: Math.cos(angle) * this.bulletSpeed,
       yVel: Math.sin(angle) * this.bulletSpeed,
     });
-    console.log(this.bullets);
   }
   update() {
     this.y += this.yVel;
@@ -441,7 +435,6 @@ class Planet {
       clearInterval(this.stunFunction);
     }
     this.stuned = true;
-    console.log("stun");
     this.stunFunction = setTimeout(() => {
       this.stuned = false;
     }, 1000);
@@ -539,6 +532,7 @@ var planet = new Planet();
 
 // get mouse position
 canvas.addEventListener("mousemove", (e) => {
+  let canvasPos = canvas.getBoundingClientRect();
   mouseX = Math.round(e.clientX - canvasPos.left - canvas.width / 2);
   mouseY = Math.round(e.clientY - canvasPos.top - canvas.height / 2);
 });
@@ -549,7 +543,6 @@ canvas.addEventListener("click", (e) => {
 
 window.addEventListener("keydown", (e) => {
   let key = e.key;
-  console.log(key);
   if (key == " ") {
     if (playing == false) {
       startGame();
