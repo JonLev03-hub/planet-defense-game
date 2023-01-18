@@ -13,9 +13,8 @@ var day = 0;
 var entityCap;
 var entities;
 var powerup;
-var difficulty = 0.02;
+var difficulty = 0.08;
 
-const canvasPos = canvas.getBoundingClientRect();
 var mouseX;
 var mouseY;
 
@@ -27,7 +26,9 @@ explosionSound.volume = 0.1;
 var impactSound = new Audio("./assets/sounds/impactSound.wav");
 impactSound.volume = 0.1;
 var powerupSound = new Audio("./assets/sounds/powerupSound.wav");
-impactSound.volume = 0.1;
+powerupSound.volume = 0.1;
+var stunSound = new Audio("./assets/sounds/stunSound.wav");
+stunSound.volume = 0.1;
 
 // ----- functions -----
 function randomNumber(min, max, neg = false) {
@@ -94,19 +95,21 @@ class entity {
       ) {
         entities[this.constructor.name].push(new this.constructor());
       }
-    }, this.spawnTime);
+    }, this.constructor.spawnTime);
   }
   break() {
     score += this.pointValue;
     explosionSound.currentTime = 0;
     explosionSound.play();
-    entityCap[this.constructor.name] += difficulty;
     this.spawn();
+    if (entityCap[this.constructor.name] < this.constructor.maxCount) {
+      entityCap[this.constructor.name] += difficulty;
+    }
   }
 }
 
 class Asteroid extends entity {
-  static maxSpeed = 3;
+  static maxSpeed = 2;
   static minSpeed = 1;
   static pixelMultiplier = 12;
   constructor(x, y, health = 3) {
@@ -140,6 +143,7 @@ class Powerup extends entity {
   static powerups = ["fullAuto", "heal", "bonusPoints"];
   static maxSpeed = 2;
   static minSpeed = 1;
+  static spawnTime = 4000;
   constructor() {
     super(false, false, "red");
     this.radius = 15;
@@ -147,7 +151,6 @@ class Powerup extends entity {
     this.power = this.GeneratePowerup();
     this.xVel = randomNumber(Powerup.minSpeed, Powerup.maxSpeed, true);
     this.yVel = randomNumber(Powerup.minSpeed, Powerup.maxSpeed, true);
-    this.spawnTime = 8000;
   }
   GeneratePowerup() {
     let index = randomNumber(0, Powerup.powerups.length - 1);
@@ -158,19 +161,15 @@ class Powerup extends entity {
     powerupSound.play();
     switch (this.power) {
       case "fullAuto":
-        console.log("auto");
         planet.fullAuto = 150;
         break;
       case "heal":
-        console.log("heal");
         planet.health += 4;
         break;
       case "bonusPoints":
-        console.log("points");
         score += 250;
         break;
       default:
-        console.log(this.power);
         break;
     }
     this.spawn();
@@ -178,7 +177,9 @@ class Powerup extends entity {
 }
 
 class Alien1 extends entity {
-  static maxSpeed = 2;
+  static maxSpeed = 1.75;
+  static spawnTime = 1000;
+  static maxCount = 2;
   constructor() {
     super();
     this.findVel();
@@ -186,7 +187,6 @@ class Alien1 extends entity {
     this.damage = 2;
     this.color = "red";
     this.pointValue = 20;
-    this.spawnTime = 1000;
   }
   findVel() {
     let thetaPrime = Math.atan2(Planet.y - this.y, Planet.x - this.x);
@@ -197,15 +197,16 @@ class Alien1 extends entity {
   }
 }
 class Alien2 extends entity {
-  static maxSpeed = 4;
+  static maxSpeed = 3;
   static targetRange = 100;
+  static spawnTime = 4000;
+  static maxCount = 3;
   constructor() {
     super();
     this.radius = 20;
     this.damage = 2;
     this.color = "lightgreen";
     this.pointValue = 40;
-    this.spawnTime = 1000;
     this.targetX = (this.x + Planet.x) / 2;
     this.targetY = (this.y + Planet.y) / 2;
     this.findVel();
@@ -266,13 +267,13 @@ class Alien3 extends entity {
   static maxSpeed = 2;
   static patrolRange = Math.PI / 2; //in radians
   static patrolRadius = 300;
+  static spawnTime = 10000;
   constructor() {
     super();
     this.radius = 20;
     this.damage = 2;
     this.color = "purple";
-    this.pointValue = 40;
-    this.spawnTime = 1000;
+    this.pointValue = 60;
     this.targetX = (this.x + Planet.x) / 2;
     this.targetY = (this.y + Planet.y) / 2;
     this.findVel();
@@ -310,7 +311,6 @@ class Alien3 extends entity {
       xVel: Math.cos(angle) * this.bulletSpeed,
       yVel: Math.sin(angle) * this.bulletSpeed,
     });
-    console.log(this.bullets);
   }
   update() {
     this.y += this.yVel;
@@ -424,9 +424,15 @@ class Planet {
       c.resetTransform();
     }
   }
-  shootTurret() {
+  shootTurret(second = false) {
     if (paused) return;
     if (this.stuned) return;
+    this.bullets.push({
+      x: Math.cos(this.turretRotation) * Planet.turretWidth + Planet.x,
+      y: Math.sin(this.turretRotation) * Planet.turretWidth + Planet.y,
+      xVel: Math.cos(this.turretRotation) * Planet.bulletSpeed,
+      yVel: Math.sin(this.turretRotation) * Planet.bulletSpeed,
+    });
     this.bullets.push({
       x: Math.cos(this.turretRotation) * Planet.turretWidth + Planet.x,
       y: Math.sin(this.turretRotation) * Planet.turretWidth + Planet.y,
@@ -441,10 +447,11 @@ class Planet {
       clearInterval(this.stunFunction);
     }
     this.stuned = true;
-    console.log("stun");
     this.stunFunction = setTimeout(() => {
       this.stuned = false;
     }, 1000);
+    stunSound.currentTime = 0;
+    stunSound.play();
   }
   update() {
     this.rotateTurret();
@@ -533,12 +540,12 @@ function drawScoreboard() {
   c.textAlign = "right";
   c.fillText(`Highscore: ${highscore}`, canvas.width - 5, 25);
 }
-
 // Init classes
 var planet = new Planet();
 
 // get mouse position
 canvas.addEventListener("mousemove", (e) => {
+  let canvasPos = canvas.getBoundingClientRect();
   mouseX = Math.round(e.clientX - canvasPos.left - canvas.width / 2);
   mouseY = Math.round(e.clientY - canvasPos.top - canvas.height / 2);
 });
@@ -549,7 +556,6 @@ canvas.addEventListener("click", (e) => {
 
 window.addEventListener("keydown", (e) => {
   let key = e.key;
-  console.log(key);
   if (key == " ") {
     if (playing == false) {
       startGame();
