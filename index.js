@@ -2,7 +2,7 @@ const canvas = document.querySelector("canvas");
 const c = canvas.getContext("2d");
 canvas.width = 720;
 canvas.height = 720;
-const despawnRange = 30;
+const despawnRange = 75;
 
 // init game variables
 var playing = false;
@@ -59,19 +59,14 @@ class entity {
   }
   draw() {
     c.beginPath();
-    c.strokeStyle = this.color ? this.color : "white";
-    c.lineWidth = 2;
     c.translate(this.x, this.y);
-    this.constructor.image
-      ? c.drawImage(
-          this.constructor.image,
-          -this.radius - 5,
-          -this.radius - 5,
-          this.radius * 2 + 10,
-          this.radius * 2 + 10
-        )
-      : c.arc(0, 0, this.radius, 0, 2 * Math.PI);
-    c.stroke();
+    c.drawImage(
+      this.constructor.image,
+      -this.radius - 5,
+      -this.radius - 5,
+      this.radius * 2 + 10,
+      this.radius * 2 + 10
+    );
     c.resetTransform();
   }
   update() {
@@ -92,9 +87,9 @@ class entity {
     this.draw();
   }
   generateLocation() {
-    this.y = randomNumber(0, canvas.width + despawnRange / 2, false);
+    this.y = randomNumber(0, canvas.width + despawnRange - 1, false);
     this.x = randomNumber(0, 1)
-      ? -despawnRange / 2
+      ? -despawnRange - 1
       : canvas.width + despawnRange / 2;
     randomNumber(0, 1) && ([this.x, this.y] = [this.y, this.x]);
   }
@@ -123,7 +118,7 @@ class entity {
 class Asteroid extends entity {
   static maxSpeed = 2;
   static minSpeed = 1;
-  static pixelMultiplier = 12;
+  static pixelMultiplier = 15;
   static image = new Image();
   constructor(x, y, health = 3) {
     super(x, y);
@@ -134,6 +129,20 @@ class Asteroid extends entity {
     this.xVel = randomNumber(Asteroid.minSpeed, Asteroid.maxSpeed, true);
     this.yVel = randomNumber(Asteroid.minSpeed, Asteroid.maxSpeed, true);
     this.damage = this.health;
+    this.rotation = randomNumber(0, 2 * Math.PI);
+  }
+  draw() {
+    c.translate(this.x, this.y);
+    c.rotate(this.rotation);
+    this.rotation += (this.xVel * this.yVel) / 120;
+    c.drawImage(
+      this.constructor.image,
+      -this.radius,
+      -this.radius,
+      this.radius * 2,
+      this.radius * 2
+    );
+    c.resetTransform();
   }
   break() {
     spawnEnemy();
@@ -168,6 +177,20 @@ class Powerup extends entity {
     this.power = this.GeneratePowerup();
     this.xVel = randomNumber(Powerup.minSpeed, Powerup.maxSpeed, true);
     this.yVel = randomNumber(Powerup.minSpeed, Powerup.maxSpeed, true);
+    this.rotation = randomNumber(0, 2 * Math.PI);
+  }
+  draw() {
+    c.translate(this.x, this.y);
+    c.rotate(this.rotation);
+    this.rotation += (this.xVel * this.yVel) / 120;
+    c.drawImage(
+      this.constructor.image,
+      -this.radius - 5,
+      -this.radius - 5,
+      this.radius * 2 + 10,
+      this.radius * 2 + 10
+    );
+    c.resetTransform();
   }
   GeneratePowerup() {
     let index = randomNumber(0, Powerup.powerups.length - 1);
