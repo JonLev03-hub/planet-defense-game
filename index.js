@@ -3,11 +3,15 @@ const c = canvas.getContext("2d");
 canvas.width = 720;
 canvas.height = 720;
 const despawnRange = 75;
+// init local storage score
+if (!localStorage.highscore) {
+  localStorage.setItem("highscore", 0);
+}
 
 // init game variables
 var playing = false;
 var paused = false;
-var highscore = 0;
+var highscore = localStorage.highscore ? localStorage.highscore : 0;
 var score = 0;
 var day = 0;
 var entityCap;
@@ -87,9 +91,9 @@ class entity {
     this.draw();
   }
   generateLocation() {
-    this.y = randomNumber(0, canvas.width + despawnRange - 1, false);
+    this.y = randomNumber(0, canvas.width + despawnRange / 2, false);
     this.x = randomNumber(0, 1)
-      ? -despawnRange - 1
+      ? -despawnRange / 2
       : canvas.width + despawnRange / 2;
     randomNumber(0, 1) && ([this.x, this.y] = [this.y, this.x]);
   }
@@ -594,7 +598,10 @@ function startGame() {
 
 function endGame() {
   planet = new Planet();
-  if (score > highscore) highscore = score;
+  if (score > highscore) {
+    highscore = score;
+    localStorage.highscore = score;
+  }
   playing = false;
 }
 
