@@ -330,7 +330,7 @@ class Alien3 extends entity {
 
     this.bulletTime = 1; // in ms
     this.bulletSpeed = 2;
-    this.bulletSize = 10;
+    this.bulletSize = 7;
     this.bullets = [];
   }
   findVel() {
@@ -491,12 +491,6 @@ class Planet {
       xVel: Math.cos(this.turretRotation) * Planet.bulletSpeed,
       yVel: Math.sin(this.turretRotation) * Planet.bulletSpeed,
     });
-    this.bullets.push({
-      x: Math.cos(this.turretRotation) * Planet.turretWidth + Planet.x,
-      y: Math.sin(this.turretRotation) * Planet.turretWidth + Planet.y,
-      xVel: Math.cos(this.turretRotation) * Planet.bulletSpeed,
-      yVel: Math.sin(this.turretRotation) * Planet.bulletSpeed,
-    });
     laserSound.currentTime = 0;
     laserSound.play();
   }
@@ -576,7 +570,7 @@ function startGame() {
     Alien1: 0,
     Alien2: 0,
     Alien3: 0,
-    Powerup: 0,
+    Powerup: 1,
   };
   entities = {
     Asteroid: [new Asteroid()],
